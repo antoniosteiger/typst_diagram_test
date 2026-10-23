@@ -1,0 +1,165 @@
+\documentclass[tikz,border=8pt]{standalone}
+\usepackage{amsmath,amsfonts}
+\usepackage{xcolor}
+\usetikzlibrary{arrows.meta}
+% ---------- colours (TUM) ----------
+\definecolor{tum}{HTML}{0065BD}
+\definecolor{tumdark}{HTML}{005293}
+\definecolor{tumpale}{HTML}{DAE3EE}
+\definecolor{gry}{HTML}{6B6B6B}
+\definecolor{grypale}{HTML}{EDEDED}
+
+% ---------- layout (cm, y grows upwards in TikZ so rows use negative y) ----------
+\newcommand{\Yzero}{3.85}
+\newcommand{\Gx}{3.1}
+\newcommand{\splitx}{7.7}
+\newcommand{\Qx}{9.2}
+\newcommand{\Mx}{10.8}
+\newcommand{\Vx}{16.8}
+\newcommand{\Ox}{18.9}
+\newcommand{\Wd}{19.9}
+\newcommand{\Ky}{2.1}
+\newcommand{\Yb}{8.35}
+\newcommand{\vw}{1.2}
+\newcommand{\vh}{0.72}
+\newcommand{\sel}{1}  % highlighted query (series 2)
+
+% group of series r: 0 -> A (blue), 1 -> grey B
+\newcommand{\gc}[1]{\ifnum#1<3 tum\else gry\fi}
+\newcommand{\gp}[1]{\ifnum#1<3 tumpale\else grypale\fi}
+\newcommand{\gl}[1]{\ifnum#1<3 A\else B\fi}
+\newcommand{\RY}[1]{\fpeval{-(\Yzero+#1*0.9)}}
+\newcommand{\MX}[1]{\fpeval{\Mx+0.45+#1*0.9}}
+
+% softmax weights A_ij (rows sum to 1); masked pairs are 0
+\expandafter\def\csname w00\endcsname{0.5}  
+\expandafter\def\csname w01\endcsname{0.3}  \expandafter\def\csname w02\endcsname{0.2}  \expandafter\def\csname w03\endcsname{0}    \expandafter\def\csname w04\endcsname{0}
+\expandafter\def\csname w10\endcsname{0.25} 
+\expandafter\def\csname w11\endcsname{0.5}  \expandafter\def\csname w12\endcsname{0.25} \expandafter\def\csname w13\endcsname{0}    \expandafter\def\csname w14\endcsname{0}
+\expandafter\def\csname w20\endcsname{0.2}  
+\expandafter\def\csname w21\endcsname{0.3}  \expandafter\def\csname w22\endcsname{0.5}  \expandafter\def\csname w23\endcsname{0}    \expandafter\def\csname w24\endcsname{0}
+\expandafter\def\csname w30\endcsname{0}    
+\expandafter\def\csname w31\endcsname{0}    \expandafter\def\csname w32\endcsname{0}    \expandafter\def\csname w33\endcsname{0.65} \expandafter\def\csname w34\endcsname{0.35}
+\expandafter\def\csname w40\endcsname{0}    
+\expandafter\def\csname w41\endcsname{0}    \expandafter\def\csname w42\endcsname{0}    \expandafter\def\csname w43\endcsname{0.4}  \expandafter\def\csname w44\endcsname{0.6}
+
+\tikzset{
+  lab/.style={font=\footnotesize, align=center},
+  head/.style={font=\bfseries\small, align=center},
+  vec/.style={rounded corners=2.5pt, minimum width=\vw cm, minimum height=\vh cm, inner sep=0pt, line width=.8pt, font=\footnotesize},
+  flow/.style={-{Triangle[length=2.6mm,width=2.4mm]}, line width=1.3pt, color=tumdark},
+}
+
+% a vector cell: #1 name, #2 x, #3 row, #4 text, #5 highlighted?(1/0)
+\newcommand{\vcell}[5]{%
+  \edef\c{\gc{#3}}%
+  \ifnum#5=1
+    \node[vec, draw=tumdark, line width=1.8pt, fill=\c!75!white] at (#2,{\RY{#3}}) {#4};
+  \else
+    \node[vec, draw=\c, fill=\c!35!white] at (#2,{\RY{#3}}) {#4};
+  \fi}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm,y=1cm]
+% ===== group bands =====
+\foreach \g/\ra/\rb in {0/0/2, 1/3/4}{
+  \ifnum\g=0 \def\bc{tum}\def\bp{tumpale}\def\bn{A}\else \def\bc{gry}\def\bp{grypale}\def\bn{B}\fi
+  \draw[\bc, dashed, line width=.7pt, rounded corners=4pt, fill=\bp!65!white]
+    (0.05,{\RY{\ra}+0.45-0.03}) rectangle (\Wd,{\RY{\rb}-0.45+0.03});
+  \node[\bc, font=\bfseries\footnotesize] at (0.75,{(\RY{\ra}+\RY{\rb})/2}) {Group \bn};
+}
+
+% ===== (1) input patch embeddings =====
+\node[head] at (\Gx+2,-0.75) {Patch embeddings $\mathbf{H}$ (columns = patch index)};
+\node[lab, gry] at (\Gx+2,-1.2) {$B$ series $\times$ $N$ patches};
+\foreach \r in {0,...,4}{
+  \node[lab] at (2.05,{\RY{\r}}) {series \fpeval{\r+1}};
+  \foreach \cx/\on in {0.5/0, 1.5/0, 3.5/1}{
+    \edef\c{\gc{\r}}
+    \ifnum\on=1
+      \node[vec, draw=\c, fill=\c, minimum width=.82cm] at (\Gx+\cx,{\RY{\r}}) {};
+    \else
+      \node[vec, draw=\c, fill=\c!35!white, minimum width=.82cm] at (\Gx+\cx,{\RY{\r}}) {};
+    \fi
+  }
+  \node[lab, gry] at (\Gx+2.5,{\RY{\r}}) {$\cdots$};
+}
+\node[lab, gry] at (\Gx+0.5,{-\Yzero+0.62}) {1};
+\node[lab, gry] at (\Gx+1.5,{-\Yzero+0.62}) {2};
+\node[lab, tumdark, font=\footnotesize\bfseries] at (\Gx+3.5,{-\Yzero+0.62}) {$n$};
+\draw[tumdark, line width=1.8pt, rounded corners=4pt]
+  (\Gx+3.5-0.55,{\RY{0}+0.45+0.02}) rectangle (\Gx+3.5+0.55,{\RY{4}-0.45-0.02});
+\node[lab, gry] at (\Gx+1.5,{\RY{4}-0.75}) {columns are not mixed here};
+
+% ===== slice -> Q, K, V =====
+\draw[line width=1.3pt, color=tumdark] (\Gx+4.08,{\RY{2}}) -- (\splitx,{\RY{2}});
+\fill[tumdark] (\splitx-0.04,-\Yb) rectangle (\splitx+0.04,-\Ky);
+\draw[flow] (\splitx,{\RY{2}}) -- (\Qx-0.6-0.1,{\RY{2}});
+\draw[flow] (\splitx,-\Ky) -- (\Mx-0.1-0.0,-\Ky);
+\draw[flow] (\splitx,-\Yb) -- (\Vx,-\Yb) -- (\Vx,{\RY{4}-0.36-0.1});
+\node[lab, tumdark] at (8.25,{\RY{2}-0.3}) {$W_Q$};
+\node[lab, tumdark] at (9.45,-\Ky+0.3) {$W_K$};
+\node[lab, tumdark] at ({(\splitx+\Vx)/2},-\Yb+0.3) {$W_V$};
+
+% ===== queries =====
+\node[head] at (\Qx,{-\Yzero+0.85}) {Queries $\mathbf{Q}$};
+\foreach \r in {0,...,4}{
+  \ifnum\r=\sel \vcell{q}{\Qx}{\r}{$q_{\fpeval{\r+1}}$}{1}
+  \else \vcell{q}{\Qx}{\r}{$q_{\fpeval{\r+1}}$}{0}\fi
+}
+
+% ===== keys (row) and group ids =====
+\node[head] at (\Mx+4.5+1.35,-\Ky) {Keys $\mathbf{K}^{\!\top}$};
+\node[lab, gry] at (\Mx-0.35,-0.95) {group IDs $g$};
+\foreach \j in {0,...,4}{
+  \edef\c{\gc{\j}}
+  \ifnum\j<3
+    \node[rounded corners=2.5pt, draw=tumdark, line width=1.8pt, fill=tum!75!white, minimum width=.82cm, minimum height=.9cm, inner sep=0pt, font=\footnotesize] at ({\MX{\j}},-\Ky) {$k_{\fpeval{\j+1}}$};
+  \else
+    \node[rounded corners=2.5pt, draw=gry, line width=.8pt, fill=gry!35!white, minimum width=.82cm, minimum height=.9cm, inner sep=0pt, font=\footnotesize] at ({\MX{\j}},-\Ky) {$k_{\fpeval{\j+1}}$};
+  \fi
+  \node[rounded corners=4pt, fill=\c, text=white, minimum width=.5cm, minimum height=.36cm, inner sep=0pt, font=\scriptsize\bfseries] at ({\MX{\j}},-0.95) {\gl{\j}};
+}
+
+% ===== attention matrix =====
+\node[head] at (\Mx+2.25,{-\Yzero+0.85}) {Attention weights $\mathbf{A}$ ($B\times B$)};
+\foreach \i in {0,...,4}{
+  \foreach \j in {0,...,4}{
+    \edef\c{\gc{\i}}
+    \edef\wt{\csname w\i\j\endcsname}
+    \ifdim\wt pt=0pt
+      \draw[lightgray, dotted, rounded corners=2pt, fill=white] ({\MX{\j}-0.42},{\RY{\i}-0.42}) rectangle ({\MX{\j}+0.42},{\RY{\i}+0.42});
+      \node[font=\scriptsize, text=lightgray] at ({\MX{\j}},{\RY{\i}}) {0};
+    \else
+      \pgfmathsetmacro{\tint}{12+88*\wt}
+      \draw[\c, line width=.6pt, rounded corners=2pt, fill=\c!\tint!white] ({\MX{\j}-0.42},{\RY{\i}-0.42}) rectangle ({\MX{\j}+0.42},{\RY{\i}+0.42});
+      \ifdim\wt pt<0.5pt
+        \node[font=\scriptsize] at ({\MX{\j}},{\RY{\i}}) {\wt};
+      \else
+        \node[font=\scriptsize, text=white] at ({\MX{\j}},{\RY{\i}}) {\wt};
+      \fi
+    \fi
+  }
+}
+\draw[tumdark, line width=1.8pt, rounded corners=3pt]
+  (\Mx,{\RY{\sel}-0.45}) rectangle (\Mx+4.5,{\RY{\sel}+0.45});
+
+% ===== x V = O =====
+\node[font=\Large, gry] at (\Mx+4.5+0.45,{\RY{2}}) {$\times$};
+\node[head] at (\Vx,{-\Yzero+0.85}) {Values $\mathbf{V}$};
+\node[font=\Large, gry] at (\Vx+1.05,{\RY{2}}) {$=$};
+\node[head] at (\Ox,{-\Yzero+0.85}) {Output $\mathbf{O}$};
+\foreach \r in {0,...,4}{
+  \ifnum\r<3 \vcell{v}{\Vx}{\r}{$v_{\fpeval{\r+1}}$}{1}\else \vcell{v}{\Vx}{\r}{$v_{\fpeval{\r+1}}$}{0}\fi
+  \ifnum\r=\sel \vcell{o}{\Ox}{\r}{$o_{\fpeval{\r+1}}$}{1}\else \vcell{o}{\Ox}{\r}{$o_{\fpeval{\r+1}}$}{0}\fi
+}
+
+% ===== captions =====
+\node[align=center, font=\small] at (\Wd/2,-\Yb-0.85)
+  {$\mathbf{A}=\operatorname{softmax}\!\bigl(\mathbf{Q}\mathbf{K}^{\top}/\sqrt{d}+\mathbf{M}\bigr)$,\quad
+   $M_{ij}=0$ if $g_i=g_j$, else $-\infty$\quad $\rightarrow$\quad
+   $o_i=\sum_{j:\,g_j=g_i}A_{ij}\,v_j$};
+\node[lab, gry, text width=19.3cm] at (\Wd/2,-\Yb-1.55)
+  {Applied independently for every patch index $n$. Each query attends only to keys of its own group, itself included, and never across groups (weight 0). No positional embedding: series in a group are unordered.};
+\end{tikzpicture}
+\end{document}
